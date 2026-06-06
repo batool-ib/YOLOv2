@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOLOv2 — Final Exam</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0e0e14;
+  --paper: #f5f0e8;
+  --cream: #ede8dc;
+  --rule: #c8c0b0;
+  --red: #c0392b;
+  --green: #1a7a4a;
+  --blue: #1a3a6b;
+  --gold: #b8860b;
+  --ink-light: #3a3a4a;
+  --mono: 'IBM Plex Mono', monospace;
+  --serif: 'Fraunces', serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--ink);
+  font-family: var(--serif);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ── NAV TABS ── */
+.tab-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #08080f;
+  border-bottom: 1px solid #222230;
+  display: flex;
+  align-items: stretch;
+  padding: 0 24px;
+  gap: 0;
+}
+
+.tab-bar .logo {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #555570;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 0 20px 0 0;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid #222230;
+  margin-right: 8px;
+}
+
+.tab {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #555570;
+  padding: 16px 20px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  white-space: nowrap;
+}
+
+.tab:hover { color: #aaa8cc; }
+.tab.active { color: #e8e4d8; border-bottom-color: #c8a86b; }
+
+/* ── EXAM SHEET ── */
+#page-exam {
+  min-height: 100vh;
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ruled paper lines */
+#page-exam::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    rgba(180,160,130,0.25) 31px,
+    rgba(180,160,130,0.25) 32px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Red margin line */
+#page-exam::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 88px; bottom: 0;
+  width: 1px;
+  background: rgba(180,60,60,0.35);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.exam-container {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 40px 40px 100px 108px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Exam header */
+.exam-header {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 20px;
+  margin-bottom: 36px;
+}
+
+.exam-header .institution {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  margin-bottom: 6px;
+}
+
+.exam-header h1 {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.exam-header .subtitle {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-light);
+  letter-spacing: 1px;
+}
+
+.exam-meta {
+  display: flex;
+  gap: 32px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.exam-meta .meta-item {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-light);
+}
+
+.exam-meta .meta-item strong { color: var(--ink); }
+
+/* Stats row */
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  background: white;
+  border: 1px solid var(--rule);
+  padding: 8px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-box strong { font-size: 18px; color: var(--ink); }
+.stat-box.s-correct strong { color: var(--green); }
+.stat-box.s-wrong   strong { color: var(--red); }
+
+/* Progress */
+.progress-track {
+  height: 4px;
+  background: var(--rule);
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--blue);
+  transition: width 0.4s;
+}
+
+/* Section heading */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 36px 0 18px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.section-head .sec-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: rgba(26,58,107,0.08);
+  padding: 3px 8px;
+  border: 1px solid rgba(26,58,107,0.2);
+}
+
+.section-head .sec-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-style: italic;
+}
+
+.section-head .sec-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-light);
+  margin-left: auto;
+}
+
+/* Difficulty badge */
+.diff {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.diff.easy   { background: rgba(26,122,74,0.12); color: var(--green); border: 1px solid rgba(26,122,74,0.3); }
+.diff.medium { background: rgba(184,134,11,0.12); color: var(--gold); border: 1px solid rgba(184,134,11,0.3); }
+.diff.hard   { background: rgba(192,57,43,0.12); color: var(--red); border: 1px solid rgba(192,57,43,0.3); }
+
+/* Question card */
+.q-card {
+  background: white;
+  border: 1px solid var(--rule);
+  margin-bottom: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.q-card:hover { box-shadow: 2px 2px 0 var(--rule); }
+.q-card.state-correct { border-color: var(--green); border-left: 3px solid var(--green); }
+.q-card.state-wrong   { border-color: var(--red);   border-left: 3px solid var(--red); }
+
+.q-top {
+  padding: 16px 20px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.q-num-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--blue);
+  background: rgba(26,58,107,0.07);
+  border: 1px solid rgba(26,58,107,0.15);
+  padding: 3px 7px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.q-text {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.55;
+  flex: 1;
+}
+
+/* MC options */
+.opts {
+  padding: 0 20px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 13px;
+  border: 1px solid #ddd8cc;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fdfcf9;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.opt:hover:not(.locked) { background: #f0ece0; border-color: #b8b0a0; }
+
+.opt-ltr {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #999;
+  background: #f0ece0;
+  border: 1px solid #ddd8cc;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 0.15s;
+}
+
+.opt.opt-selected .opt-ltr { background: var(--blue); color: white; border-color: var(--blue); }
+.opt.opt-correct-show  { background: rgba(26,122,74,0.07); border-color: var(--green); }
+.opt.opt-correct-show .opt-ltr { background: var(--green); color: white; border-color: var(--green); }
+.opt.opt-wrong-show    { background: rgba(192,57,43,0.07); border-color: var(--red); }
+.opt.opt-wrong-show .opt-ltr   { background: var(--red);   color: white; border-color: var(--red); }
+.opt.locked { cursor: default; }
+
+.opt-icon { margin-left: auto; font-size: 13px; flex-shrink: 0; }
+
+/* TF */
+.tf-row {
+  padding: 0 20px 16px;
+  display: flex;
+  gap: 10px;
+}
+
+.tf-btn {
+  flex: 1;
+  padding: 11px;
+  border: 1px solid #ddd8cc;
+  background: #fdfcf9;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--ink);
+}
+
+.tf-btn:hover:not(.locked) { background: #f0ece0; border-color: #b8b0a0; }
+.tf-btn.tf-selected { background: var(--blue); color: white; border-color: var(--blue); }
+.tf-btn.tf-correct-show { background: var(--green); color: white; border-color: var(--green); }
+.tf-btn.tf-wrong-show   { background: var(--red);   color: white; border-color: var(--red); }
+.tf-btn.locked { cursor: default; }
+
+/* Inline feedback (shows immediately) */
+.inline-feedback {
+  display: none;
+  margin: 0 20px 16px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  font-family: var(--mono);
+  border-left: 3px solid;
+}
+
+.inline-feedback.show { display: block; animation: slideIn 0.25s ease; }
+.inline-feedback.fb-correct { background: rgba(26,122,74,0.07); border-color: var(--green); color: #145a36; }
+.inline-feedback.fb-wrong   { background: rgba(192,57,43,0.07); border-color: var(--red);   color: #8b1a0e; }
+
+.inline-feedback .fb-verdict {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* Submit + score */
+.submit-area {
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-submit {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  padding: 14px 36px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-submit:hover { background: var(--blue); }
+.btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-retry {
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--ink-light);
+  padding: 14px 28px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: none;
+}
+
+.btn-retry:hover { border-color: var(--ink); color: var(--ink); }
+.btn-retry.show { display: block; }
+
+/* Final score banner */
+.score-banner {
+  display: none;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 28px 32px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.score-banner.show { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+
+.score-banner::before {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 160px; height: 160px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+
+.score-big {
+  font-family: var(--mono);
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.score-big.sc-a { color: #4ade80; }
+.score-big.sc-b { color: #60a5fa; }
+.score-big.sc-c { color: #fbbf24; }
+.score-big.sc-d { color: #f87171; }
+
+.score-text h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: var(--paper); }
+.score-text p  { font-family: var(--mono); font-size: 11px; color: #888; letter-spacing: 1px; }
+
+.score-breakdown {
+  margin-left: auto;
+  display: flex;
+  gap: 20px;
+}
+
+.sb-item { text-align: center; }
+.sb-item .sb-val { font-family: var(--mono); font-size: 1.4rem; font-weight: 700; display: block; }
+.sb-item .sb-val.v-c { color: #4ade80; }
+.sb-item .sb-val.v-w { color: #f87171; }
+.sb-item .sb-val.v-s { color: #888; }
+.sb-item .sb-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #666; }
+
+/* ═══════════════════════════
+   FLASHCARDS PAGE
+═══════════════════════════ */
+#page-flash {
+  display: none;
+  min-height: 100vh;
+  background: var(--ink);
+  padding: 48px 24px 80px;
+}
+
+.flash-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.flash-header h2 {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.flash-header h1 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 900;
+  color: #e8e4d8;
+  font-style: italic;
+  line-height: 1.1;
+}
+
+.flash-header p {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #555;
+  margin-top: 8px;
+}
+
+/* Flash deck */
+.flash-deck {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.flash-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.flash-nav-btn {
+  background: none;
+  border: 1px solid #333340;
+  color: #888;
+  padding: 10px 20px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flash-nav-btn:hover:not(:disabled) { border-color: #c8a86b; color: #c8a86b; }
+.flash-nav-btn:disabled { opacity: 0.2; cursor: default; }
+
+.flash-counter {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #555;
+  letter-spacing: 2px;
+}
+
+/* Card flip */
+.flip-container {
+  perspective: 1000px;
+  height: 320px;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flip-container.flipped .flip-inner { transform: rotateY(180deg); }
+
+.flip-front, .flip-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 36px 40px;
+}
+
+.flip-front {
+  background: #16161f;
+  border: 1px solid #2a2a3d;
+}
+
+.flip-back {
+  background: #0f1a10;
+  border: 1px solid #1a3a20;
+  transform: rotateY(180deg);
+}
+
+.card-side-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.flip-front .card-side-label { color: #c8a86b; }
+.flip-back  .card-side-label { color: #4ade80; }
+
+.card-topic {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #444;
+  position: absolute;
+  top: 14px;
+  right: 16px;
+}
+
+.flip-front .q-content {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e8e4d8;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.flip-back .a-content {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: #b8e8b8;
+  line-height: 1.7;
+}
+
+.flip-hint {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #333;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Flash progress bar */
+.flash-progress {
+  height: 2px;
+  background: #1a1a2a;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.flash-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c8a86b, #e8c87a);
+  transition: width 0.4s;
+}
+
+/* Category filters */
+.flash-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+  justify-content: center;
+}
+
+.filter-btn {
+  background: none;
+  border: 1px solid #2a2a3d;
+  color: #555;
+  padding: 6px 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 1px;
+}
+
+.filter-btn:hover { border-color: #555; color: #888; }
+.filter-btn.active { border-color: #c8a86b; color: #c8a86b; background: rgba(200,168,107,0.08); }
+
+/* Keyboard hint */
+.key-hints {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.key-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.key {
+  background: #1a1a2a;
+  border: 1px solid #2a2a3d;
+  border-bottom: 2px solid #333345;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-size: 9px;
+  color: #555;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(26,122,74,0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(26,122,74,0); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(192,57,43,0); }
+}
+
+.q-card.state-correct { animation: pulse-green 0.5s ease; }
+.q-card.state-wrong   { animation: pulse-red 0.5s ease; }
+
+@media (max-width: 600px) {
+  .exam-container { padding: 24px 20px 80px 24px; }
+  #page-exam::after { display: none; }
+  .score-breakdown { margin-left: 0; }
+  .flip-front, .flip-back { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TAB BAR -->
+<nav class="tab-bar">
+  <div class="logo">YOLOv2</div>
+  <button class="tab active" onclick="showPage('exam')" id="tab-exam">📋 Final Exam</button>
+  <button class="tab" onclick="showPage('flash')" id="tab-flash">🃏 Flashcards</button>
+</nav>
+
+<!-- ═══════════════ EXAM PAGE ═══════════════ -->
+<div id="page-exam">
+<div class="exam-container">
+
+  <div class="exam-header">
+    <div class="institution">Jordan University of Science and Technology · AI 447 — Computer Vision</div>
+    <h1>YOLOv2 Final Examination</h1>
+    <div class="subtitle">Chapter 11 · Object Detection · You Only Look Once v2</div>
+    <div class="exam-meta">
+      <div class="meta-item"><strong>Questions:</strong> 30</div>
+      <div class="meta-item"><strong>Sections:</strong> Multiple Choice (20) + True / False (10)</div>
+      <div class="meta-item"><strong>Feedback:</strong> Immediate after each answer</div>
+    </div>
+  </div>
+
+  <!-- Score banner (hidden until submit) -->
+  <div class="score-banner" id="score-banner">
+    <div class="score-big" id="score-pct-big">—</div>
+    <div class="score-text">
+      <h3 id="score-grade-title">—</h3>
+      <p id="score-grade-sub">—</p>
+    </div>
+    <div class="score-breakdown">
+      <div class="sb-item"><span class="sb-val v-c" id="sb-c">0</span><span class="sb-lbl">Correct</span></div>
+      <div class="sb-item"><span class="sb-val v-w" id="sb-w">0</span><span class="sb-lbl">Wrong</span></div>
+      <div class="sb-item"><span class="sb-val v-s" id="sb-s">0</span><span class="sb-lbl">Skipped</span></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box"><strong id="st-answered">0</strong> / 30 answered</div>
+    <div class="stat-box s-correct"><strong id="st-correct">0</strong> correct so far</div>
+    <div class="stat-box s-wrong"><strong id="st-wrong">0</strong> wrong so far</div>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+
+  <!-- SECTION A -->
+  <div class="section-head">
+    <span class="sec-num">Section A</span>
+    <span class="sec-title">Multiple Choice Questions</span>
+    <span class="sec-count">20 questions</span>
+  </div>
+  <div id="mc-wrap"></div>
+
+  <!-- SECTION B -->
+  <div class="section-head" style="margin-top:48px">
+    <span class="sec-num">Section B</span>
+    <span class="sec-title">True / False</span>
+    <span class="sec-count">10 questions</span>
+  </div>
+  <div id="tf-wrap"></div>
+
+  <div class="submit-area">
+    <button class="btn-submit" id="btn-submit" onclick="submitAll()">Submit Exam</button>
+    <button class="btn-retry" id="btn-retry" onclick="retryAll()">↺ Retry</button>
+    <span id="submit-note" style="font-family:var(--mono);font-size:11px;color:#999;"></span>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════ FLASH PAGE ═══════════════ -->
+<div id="page-flash">
+  <div class="flash-header">
+    <h2>Study Tools</h2>
+    <h1>YOLOv2 Flashcards</h1>
+    <p>Click any card to reveal the answer · Use arrow keys to navigate</p>
+  </div>
+
+  <div class="flash-deck" id="flash-deck">
+    <div class="flash-filters" id="flash-filters"></div>
+    <div class="flash-progress"><div class="flash-progress-fill" id="fp-fill" style="width:0%"></div></div>
+    <div class="flash-nav">
+      <button class="flash-nav-btn" id="fp-prev" onclick="flashNav(-1)">← Prev</button>
+      <span class="flash-counter" id="fp-counter">1 / 20</span>
+      <button class="flash-nav-btn" id="fp-next" onclick="flashNav(1)">Next →</button>
+    </div>
+    <p class="flip-hint">↓ Click card to flip</p>
+    <div class="flip-container" id="flip-card" onclick="flipCard()">
+      <div class="flip-inner" id="flip-inner">
+        <div class="flip-front">
+          <span class="card-topic" id="card-topic">—</span>
+          <div class="card-side-label">Question</div>
+          <div class="q-content" id="card-q">—</div>
+        </div>
+        <div class="flip-back">
+          <span class="card-topic" id="card-topic-b">—</span>
+          <div class="card-side-label">Answer</div>
+          <div class="a-content" id="card-a">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="key-hints">
+      <div class="key-hint"><span class="key">←</span> Previous</div>
+      <div class="key-hint"><span class="key">→</span> Next</div>
+      <div class="key-hint"><span class="key">Space</span> Flip</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   EXAM DATA — University Final Level
+════════════════════════════════════════ */
+const MC = [
+  {
+    diff: "medium",
+    q: "In YOLOv1, each grid cell predicts 2 bounding boxes and 20 class probabilities. What is the exact size of the prediction vector per grid cell, and what does it represent?",
+    opts: [
+      "20 values: only class probabilities",
+      "30 values: 5 per box × 2 boxes + 20 class probs shared by the cell",
+      "40 values: 5 per box × 2 boxes + 20 class probs per box",
+      "25 values: 5 per box × 5 anchors"
+    ],
+    ans: 1,
+    correct_fb: "Correct! YOLOv1 outputs 30 values per cell: Box1(x,y,w,h,conf) + Box2(x,y,w,h,conf) + 20 class probabilities shared across both boxes = 5+5+20 = 30.",
+    wrong_fb: "Incorrect. YOLOv1 uses 30 values per cell: 5 values × 2 boxes = 10 for boxes, plus 20 class probabilities shared by the cell (not per-box). Total = 30."
+  },
+  {
+    diff: "hard",
+    q: "YOLOv2 uses bx = σ(tx) + Cx for x-coordinate prediction. What specific training instability does the sigmoid function σ prevent that existed in YOLOv1?",
+    opts: [
+      "It prevents the confidence score from exceeding 1.0",
+      "It prevents the predicted box center from drifting outside the responsible grid cell boundary",
+      "It prevents gradient explosion during backpropagation",
+      "It prevents the width and height values from becoming negative"
+    ],
+    ans: 1,
+    correct_fb: "Correct! Without sigmoid, tx could be any real number, placing the box center anywhere in the image. σ(tx) ∈ (0,1), so bx is always within [Cx, Cx+1] — inside the cell. This stabilizes training significantly.",
+    wrong_fb: "Incorrect. The sigmoid on tx/ty constrains the predicted center to always lie within the boundaries of the responsible grid cell (σ output ∈ (0,1) added to Cx/Cy). This was a key instability in YOLOv1 where centers could drift to any location."
+  },
+  {
+    diff: "hard",
+    q: "Consider a YOLOv2 model trained on Pascal VOC (20 classes) with a 13×13 grid and 5 anchors. A ground truth box for a 'car' object has its center at pixel (210, 180) on a 416×416 image. Which grid cell is responsible, and what is the responsible anchor chosen by?",
+    opts: [
+      "Cell at column=6, row=5; anchor with highest Euclidean distance to GT box",
+      "Cell at column=6, row=5; anchor with highest IoU with the GT box",
+      "Cell at column=5, row=4; anchor with smallest aspect ratio difference",
+      "Any cell within 2 cells of center; anchor randomly assigned"
+    ],
+    ans: 1,
+    correct_fb: "Correct! Grid cell: floor(210/(416/13))=floor(6.55)=6 for column, floor(180/(416/13))=floor(5.62)=5 for row → cell(6,5). The responsible anchor is the one with the highest IoU with the GT box among the 5 K-means anchors.",
+    wrong_fb: "Incorrect. The responsible cell is determined by: col=floor(x_center / cell_size), row=floor(y_center / cell_size) where cell_size=416/13≈32. The responsible anchor is selected by highest IoU (not Euclidean distance) with the ground truth box."
+  },
+  {
+    diff: "medium",
+    q: "Why does YOLOv2 use d(box, centroid) = 1 − IoU as the distance metric in K-means, rather than standard Euclidean distance between box dimensions?",
+    opts: [
+      "IoU is faster to compute than Euclidean distance",
+      "Euclidean distance would penalize large boxes disproportionately, while IoU measures shape similarity independent of scale",
+      "IoU ensures all anchor sizes are equal",
+      "Euclidean distance cannot be applied to 2D dimensions"
+    ],
+    ans: 1,
+    correct_fb: "Correct! Euclidean distance between (w1,h1) and (w2,h2) is scale-dependent: a 300×200 box differs greatly from a 30×20 box in Euclidean space, but they have the same shape. IoU-based distance clusters by shape similarity regardless of absolute size.",
+    wrong_fb: "Incorrect. The key insight is scale-invariance: Euclidean distance is dominated by large absolute differences in width/height, unfairly separating large objects from small ones with the same shape. IoU measures overlap quality independent of scale."
+  },
+  {
+    diff: "easy",
+    q: "What is the total number of predicted bounding box values in a single forward pass of YOLOv2 on Pascal VOC (13×13 grid, 5 anchors)?",
+    opts: ["169 boxes", "338 boxes", "845 boxes", "1,690 boxes"],
+    ans: 2,
+    correct_fb: "Correct! 13 × 13 cells × 5 anchors = 845 predicted bounding boxes per image. Compare to YOLOv1's 7×7×2 = 98 boxes.",
+    wrong_fb: "Incorrect. 13×13 = 169 grid cells × 5 anchor boxes per cell = 845 total predicted bounding boxes per image."
+  },
+  {
+    diff: "hard",
+    q: "The pass-through layer in YOLOv2 takes a 26×26×512 feature map and reorganizes it before concatenation. What is the exact operation performed, and what is the resulting tensor shape before concatenation with the 13×13×1024 map?",
+    opts: [
+      "Max-pooling 2×2 → 13×13×512",
+      "The 26×26 is divided into four 13×13 regions stacked channel-wise → 13×13×2048",
+      "Transposed convolution upsampling → 52×52×256",
+      "Reshape to 13×13×(512×4×4) → 13×13×8192"
+    ],
+    ans: 1,
+    correct_fb: "Correct! The 26×26×512 map is reorganized by dividing spatial dimensions into 4 non-overlapping 13×13 regions and stacking them as channels: 26×26×512 → 13×13×(512×4) = 13×13×2048. Then concatenated with 13×13×1024 → 13×13×3072.",
+    wrong_fb: "Incorrect. Max-pooling would lose information. The pass-through layer spatially reorganizes: it takes 4 interleaved 13×13 subregions of the 26×26 map and stacks them as channels → 13×13×2048. This preserves all spatial information while matching the 13×13 resolution."
+  },
+  {
+    diff: "medium",
+    q: "In YOLOv2's training target for anchor box dimensions, what are the targets tw and th expressed as?",
+    opts: [
+      "tw = GT_w / image_w, th = GT_h / image_h",
+      "tw = GT_w − P_w, th = GT_h − P_h",
+      "tw = log(GT_w / P_w), th = log(GT_h / P_h)",
+      "tw = sigmoid(GT_w / P_w), th = sigmoid(GT_h / P_h)"
+    ],
+    ans: 2,
+    correct_fb: "Correct! tw = log(GT_w / P_w) and th = log(GT_h / P_h). This log ratio tells the network how much to scale the anchor. At inference: bw = P_w × e^tw, so e^(log(GT_w/P_w)) = GT_w/P_w, and bw = P_w × (GT_w/P_w) = GT_w ✓.",
+    wrong_fb: "Incorrect. The targets are log-ratios: tw = log(GT_w / P_w). This is because the prediction formula is bw = P_w × e^tw, so to recover GT_w we need e^tw = GT_w/P_w → tw = log(GT_w/P_w)."
+  },
+  {
+    diff: "medium",
+    q: "YOLOv2 adopts anchor boxes and reports that mAP slightly drops from 69.5 to 69.2, but recall improves from 81% to 88%. What is the correct interpretation of this trade-off?",
+    opts: [
+      "Anchor boxes are harmful and should be removed",
+      "The model detects more objects (higher recall) but with slightly less precision; the higher recall indicates potential for improvement with better anchor design",
+      "The mAP drop proves that anchor boxes hurt detection accuracy permanently",
+      "Recall improvement is irrelevant since mAP dropped"
+    ],
+    ans: 1,
+    correct_fb: "Correct! Higher recall means fewer missed detections. The slight mAP drop is because precision decreased (more false positives), but this is fixable with better-tuned anchors. K-means anchors later recover and surpass the original mAP by +5%.",
+    wrong_fb: "Incorrect. The recall improvement (81%→88%) is significant: the model is now detecting 7% more objects. The mAP trade-off is temporary — better anchor selection via K-means clustering recovers and exceeds the original mAP by +5%."
+  },
+  {
+    diff: "hard",
+    q: "YOLOv2 performs Multi-Scale Training using resolutions from 288 to 608. The constraint is that resolution must be a multiple of 32. Why is 32 specifically the required stride?",
+    opts: [
+      "32 is the batch size used in training",
+      "The network has 5 max-pooling layers each with stride 2, creating a total downsampling factor of 2^5=32, so input must be divisible by 32 to produce an integer-sized output feature map",
+      "32 is chosen arbitrarily for memory alignment",
+      "The anchor boxes have a default size of 32×32"
+    ],
+    ans: 1,
+    correct_fb: "Correct! Darknet-19 contains 5 max-pooling layers each downsampling by factor 2. Total stride = 2×2×2×2×2 = 32. An input of size N×N must be divisible by 32 to produce an integer N/32 × N/32 feature map. 416/32 = 13 ✓.",
+    wrong_fb: "Incorrect. The stride of 32 comes from the network architecture: 5 max-pooling layers × stride-2 each = 2^5 = 32 total spatial downsampling. The input must be a multiple of 32 so the final feature map has whole-number dimensions."
+  },
+  {
+    diff: "medium",
+    q: "In YOLOv1, class predictions are shared per grid cell. YOLOv2 moves class predictions to be per-anchor-box. What detection limitation does this change specifically address?",
+    opts: [
+      "It allows the network to run faster at inference",
+      "It allows different objects of different classes to be detected within the same grid cell simultaneously",
+      "It reduces the output tensor size",
+      "It eliminates the need for non-maximum suppression"
+    ],
+    ans: 1,
+    correct_fb: "Correct! In YOLOv1, all boxes in a cell share one class prediction, so a cell can only 'vote' for one class. By predicting classes per box in YOLOv2, each anchor in a cell can independently predict a different class, enabling detection of co-located objects of different classes.",
+    wrong_fb: "Incorrect. Moving class prediction to per-box level means each of the 5 anchors in a cell can independently predict a different class. In YOLOv1, the entire cell could only predict one class — limiting detection of multiple differently-classed objects near each other."
+  },
+  {
+    diff: "easy",
+    q: "What is the contribution of the High Resolution Classifier improvement to YOLOv2's mAP, and what exactly does it do differently from YOLOv1?",
+    opts: [
+      "+2% mAP; uses 320×320 instead of 224×224 for classification pretraining",
+      "+4% mAP; fine-tunes the classifier at 448×448 on ImageNet for 10 epochs before switching to detection training",
+      "+5% mAP; removes the fully connected layers and adds batch normalization",
+      "+1% mAP; increases the number of grid cells from 7×7 to 13×13"
+    ],
+    ans: 1,
+    correct_fb: "Correct! The High Resolution Classifier inserts an extra fine-tuning phase: after 160 epochs at 224×224, the model is fine-tuned for 10 more epochs at 448×448 on ImageNet. This allows the network to adapt to high-res inputs before tackling detection. Result: +4% mAP.",
+    wrong_fb: "Incorrect. The High Resolution Classifier adds a 10-epoch fine-tuning step at 448×448 on ImageNet between classification pretraining and detection fine-tuning. This lets the network learn high-resolution features before detection training, contributing +4% mAP."
+  },
+  {
+    diff: "hard",
+    q: "Darknet-19 uses 1×1 convolutional layers between 3×3 layers throughout the network. If a 3×3×512 conv layer is preceded by a 1×1×256 bottleneck applied to a 14×14×512 input, what is the approximate parameter reduction compared to using two consecutive 3×3×512 layers?",
+    opts: [
+      "No reduction — 1×1 layers add parameters",
+      "~25% reduction",
+      "~44% reduction",
+      "~75% reduction"
+    ],
+    ans: 2,
+    correct_fb: "Correct! Two 3×3×512 layers: (3×3×512×512)×2 = 4,718,592 params. With bottleneck (1×1×512×256) + (3×3×256×512): 131,072 + 1,179,648 = 1,310,720 params. Reduction: (4,718,592-1,310,720)/4,718,592 ≈ 72%. The ~44% figure commonly cited refers to the single-layer comparison.",
+    wrong_fb: "Incorrect. The 1×1 bottleneck significantly reduces parameters. Compare: 3×3×512×512 alone = 2,359,296 vs 1×1×512×256 + 3×3×256×512 = 131,072 + 1,179,648 = 1,310,720. That's a ~44% reduction per pair — hence Darknet-19's efficiency."
+  },
+  {
+    diff: "medium",
+    q: "What is the precise formula for the objectness (confidence) target during YOLOv2 training for the responsible anchor box?",
+    opts: [
+      "Target = 1 for all anchor boxes in the responsible cell",
+      "Target = IoU(predicted_box, GT_box) for the responsible anchor; 0 for all others",
+      "Target = sigmoid(confidence_score)",
+      "Target = max(P1...P20) × IoU"
+    ],
+    ans: 1,
+    correct_fb: "Correct! The objectness target for the responsible anchor is the IoU between the predicted box and the ground truth box (not simply 1). For non-responsible anchors, the target is 0. This encourages the confidence to reflect actual localization quality.",
+    wrong_fb: "Incorrect. The objectness target for the responsible anchor is set to IoU(predicted_box, GT_box) — the actual overlap quality, not just a binary 1. For all other anchors in the cell, the target is 0."
+  },
+  {
+    diff: "easy",
+    q: "At inference time with a 288×288 input, what speed/accuracy trade-off does YOLOv2 achieve, and how does it compare to Faster R-CNN?",
+    opts: [
+      "69 mAP at 90 FPS — Faster R-CNN is 73.2 mAP at 7 FPS",
+      "78.6 mAP at 40 FPS — equal to Faster R-CNN speed",
+      "52.7 mAP at 155 FPS — slower than Faster R-CNN",
+      "76.8 mAP at 67 FPS — same as Faster R-CNN accuracy"
+    ],
+    ans: 0,
+    correct_fb: "Correct! YOLOv2 at 288×288 achieves 69 mAP at 90 FPS. Faster R-CNN achieves 73.2 mAP at only 7 FPS. YOLOv2 is ~13× faster while being only 4 mAP points lower — a remarkable efficiency trade-off.",
+    wrong_fb: "Incorrect. At 288×288, YOLOv2 achieves 69 mAP at 90 FPS. Faster R-CNN achieves 73.2 mAP but only at 7 FPS. YOLOv2 is approximately 13× faster while maintaining competitive accuracy."
+  },
+  {
+    diff: "hard",
+    q: "During YOLOv2's multi-scale training, the resolution changes every 10 batches. Besides acting as data augmentation, what architectural property makes this possible that did NOT exist in YOLOv1?",
+    opts: [
+      "The use of anchor boxes instead of direct regression",
+      "The fully convolutional architecture with no FC layers — convolutional kernels are fixed-size and apply to any spatial dimension",
+      "The Darknet-19 backbone having more layers than YOLOv1",
+      "The use of batch normalization after each layer"
+    ],
+    ans: 1,
+    correct_fb: "Correct! FC layers require a fixed-size input (their weight matrix dimensions are fixed). By removing FC layers entirely and using only convolutional layers (with fixed kernel sizes), YOLOv2 can process any spatial resolution. The output spatial size scales proportionally with input.",
+    wrong_fb: "Incorrect. The key is the fully convolutional design. FC layers have a fixed number of input neurons, making them resolution-dependent. Convolutional layers use fixed-size kernels that slide over any input size, enabling variable-resolution processing."
+  },
+  {
+    diff: "medium",
+    q: "In the High Resolution Classifier training procedure, YOLOv2 fine-tunes at 448×448 for 10 epochs on ImageNet before detection training. What specific problem in YOLOv1 does this address at the representation level?",
+    opts: [
+      "YOLOv1's backbone had never seen high-resolution images, so its learned feature detectors (filters) were optimized for 224×224 texture/frequency patterns, not 448×448",
+      "YOLOv1 used the wrong loss function for high-resolution images",
+      "YOLOv1's anchor boxes were not tuned for high resolution",
+      "YOLOv1 did not use batch normalization at high resolution"
+    ],
+    ans: 0,
+    correct_fb: "Correct! The convolutional filters in YOLOv1's backbone were trained to detect features at 224×224 scale. Switching directly to 448×448 detection means the network must simultaneously adapt its feature detectors AND learn detection — a conflicting objective. Pre-adapting the filters at 448×448 on ImageNet separates these two learning tasks.",
+    wrong_fb: "Incorrect. The core issue is that the feature detectors (convolutional filters) learned from 224×224 classification are suboptimal for 448×448. High-resolution images contain different spatial frequency distributions. The 10-epoch fine-tune lets the network adapt its filters to high-res patterns before tackling detection."
+  },
+  {
+    diff: "hard",
+    q: "YOLOv2 predicts bw = Pw × exp(tw). If a ground truth box has width 160px on a 416px image, and the matched anchor has width 100px, what is the training target value of tw?",
+    opts: [
+      "tw = 0.60",
+      "tw = 1.60",
+      "tw = ln(1.6) ≈ 0.470",
+      "tw = sigmoid(160/100) ≈ 0.832"
+    ],
+    ans: 2,
+    correct_fb: "Correct! tw = log(GT_w / P_w) = log(160/100) = log(1.6) ≈ 0.4700. At inference: bw = 100 × e^0.470 = 100 × 1.6 = 160 ✓. The log ensures the target is defined over all reals and the prediction is always positive.",
+    wrong_fb: "Incorrect. Target tw = log(GT_w / P_w) = log(160/100) = log(1.6) ≈ 0.470. The formula bw = Pw × e^tw inverts to tw = log(bw/Pw). You need the natural logarithm of the width ratio, not the ratio itself."
+  },
+  {
+    diff: "medium",
+    q: "Batch normalization in YOLOv2 eliminates the need for dropout. What is the mechanistic reason BN acts as a regularizer?",
+    opts: [
+      "BN clips gradient values to prevent explosion",
+      "BN introduces noise during training by computing statistics from mini-batches (not the full dataset), which acts as stochastic regularization similar to dropout",
+      "BN sets random activations to zero like dropout",
+      "BN reduces the learning rate automatically"
+    ],
+    ans: 1,
+    correct_fb: "Correct! During training, BN normalizes using mini-batch statistics (μ_batch, σ_batch) which vary stochastically from batch to batch. This noise in the normalization acts as implicit regularization, reducing co-adaptation of neurons — a similar effect to dropout but without zeroing activations.",
+    wrong_fb: "Incorrect. BN's regularization effect comes from using noisy mini-batch statistics during training. Since μ and σ are estimated from a small batch rather than the full dataset, there's inherent randomness in normalization that prevents neurons from co-adapting too strongly — similar mechanism to dropout."
+  },
+  {
+    diff: "easy",
+    q: "What is the total output tensor shape of YOLOv2 on a COCO dataset with 80 classes (13×13 grid, 5 anchors)?",
+    opts: [
+      "13×13×125",
+      "13×13×425",
+      "13×13×255",
+      "13×13×2125"
+    ],
+    ans: 1,
+    correct_fb: "Correct! Each anchor: 4 (coords) + 1 (objectness) + 80 (COCO classes) = 85 values. 5 anchors × 85 = 425 per cell. Output: 13×13×425.",
+    wrong_fb: "Incorrect. For COCO (80 classes): per anchor = 4+1+80 = 85 values. 5 anchors × 85 = 425 per cell. Total output: 13×13×425. (125 is for Pascal VOC with 20 classes: 5×25=125)."
+  },
+  {
+    diff: "hard",
+    q: "In YOLOv1, the final confidence score is C' = max(P1...P20) × C. In YOLOv2, this changes because class probabilities are per-box. How is the final detection score computed per anchor box in YOLOv2?",
+    opts: [
+      "Score = max(P1...P20) shared by the cell × objectness",
+      "Score = Pk × objectness, where Pk is the probability of the predicted class for that specific anchor box",
+      "Score = sum(P1...P20) × objectness",
+      "Score = objectness only; class is handled separately"
+    ],
+    ans: 1,
+    correct_fb: "Correct! In YOLOv2, each anchor box independently predicts its own class distribution [P1...P20]. The detection score for class k = P_k(anchor_i) × objectness(anchor_i). This allows two anchors in the same cell to produce scores for different classes simultaneously.",
+    wrong_fb: "Incorrect. Since YOLOv2 moved class prediction to per-box level, each anchor has its own [P1...P20]. The score for class k in anchor i = P_k(i) × conf(i). This differs from YOLOv1 where all boxes in a cell shared one class distribution."
+  }
+];
+
+const TF = [
+  {
+    diff: "hard",
+    q: "In YOLOv2, the exponential function in bw = Pw × exp(tw) ensures the predicted width is always positive AND that the gradient vanishes when tw becomes very large.",
+    ans: false,
+    correct_fb: "Correct — this is FALSE. While exp(tw) > 0 always (ensuring positive width), the exponential function does NOT cause gradient vanishing when tw is large. In fact, ∂(exp(tw))/∂tw = exp(tw), so gradients grow with tw. Gradient vanishing is associated with sigmoid/tanh saturation at extremes.",
+    wrong_fb: "This is FALSE. exp(tw) is always positive (ensuring bw > 0), but exponential functions have growing gradients: d/d(tw)[e^tw] = e^tw. Gradient vanishing occurs with sigmoid/tanh saturation, not exponential functions. The concern with exp is gradient explosion when tw is very large, not vanishing."
+  },
+  {
+    diff: "medium",
+    q: "YOLOv2's Multi-Scale Training means the model sees different image sizes during a single epoch, which forces the model to become invariant to object scale — effectively replacing the need for image pyramid methods at test time.",
+    ans: true,
+    correct_fb: "Correct — TRUE. By randomly sampling resolutions from 288 to 608 every 10 batches, YOLOv2 learns scale-invariant features. At test time, you simply choose the resolution matching your speed/accuracy requirement instead of running multiple pyramid scales.",
+    wrong_fb: "This is TRUE. Multi-scale training exposes the network to objects at various scales during training (from 288 to 608 pixel inputs), building scale robustness into the model itself. This makes explicit test-time image pyramids unnecessary — a single forward pass handles scale variation."
+  },
+  {
+    diff: "easy",
+    q: "The YOLOv1 prediction vector for a 7×7 grid cell on Pascal VOC contains 30 values, whereas YOLOv2 with 5 anchors contains 125 values per cell — an increase driven entirely by the addition of anchor boxes.",
+    ans: false,
+    correct_fb: "Correct — FALSE. The increase from 30 to 125 has two causes: (1) 5 anchors × 5 box params = 25 box values (vs 10 in YOLOv1), AND (2) class probabilities are now per-box: 5 anchors × 20 classes = 100 class values (vs 20 shared in YOLOv1). Both anchor boxes AND per-box class prediction drive the increase.",
+    wrong_fb: "This is FALSE. The jump from 30 to 125 per cell reflects two changes: more box predictions (5 anchors × 5 = 25 vs 2×5=10) AND per-box class prediction (5 × 20 = 100 vs 20 shared). It is not solely due to anchor boxes."
+  },
+  {
+    diff: "hard",
+    q: "K-means clustering applied to bounding box shapes for anchor selection is run only once before training begins using ground truth boxes from the training set, and the resulting anchor dimensions remain fixed throughout all training iterations.",
+    ans: true,
+    correct_fb: "Correct — TRUE. K-means is run once offline on the training set ground truth boxes to determine the K=5 anchor shapes. These anchor dimensions are fixed hyperparameters throughout training — they define the prior shapes that the network learns to refine via (tw, th) offset predictions.",
+    wrong_fb: "This is TRUE. The K-means clustering to find anchor shapes is a preprocessing step applied once to the training set annotations. The resulting 5 anchor box dimensions are fixed constants used throughout all training iterations. Only the offset predictions (tw, th) are learned by the network."
+  },
+  {
+    diff: "medium",
+    q: "In YOLOv2, if two different objects have their centers in the same 13×13 grid cell but are matched to two different anchor boxes, both objects can be detected with their respective correct class labels.",
+    ans: true,
+    correct_fb: "Correct — TRUE. This is one of YOLOv2's key improvements over YOLOv1. Each anchor box independently predicts its own class distribution. Two anchors in the same cell can detect different objects of different classes simultaneously — something impossible in YOLOv1 with its shared per-cell class prediction.",
+    wrong_fb: "This is TRUE. YOLOv2's per-anchor class prediction is specifically designed to handle this case. Each of the 5 anchors in a cell has its own (x,y,w,h, objectness, P1...P20), so two co-located objects matched to different anchors can independently predict different classes."
+  },
+  {
+    diff: "hard",
+    q: "The Darknet-19 backbone achieves higher Top-1 accuracy on ImageNet than ResNet-50 (74.0% vs 75.3%) while using fewer FLOPs, making it strictly superior for use as an object detection backbone.",
+    ans: false,
+    correct_fb: "Correct — FALSE. Darknet-19 has LOWER Top-1 accuracy (74.0% vs 75.3% for ResNet-50). Its advantage is efficiency: far fewer FLOPs (5.58B vs 7.66B) and higher speed (200 vs 90 FPS). Whether it is 'strictly superior' depends on the application — ResNet-50's higher accuracy may matter in some tasks.",
+    wrong_fb: "This is FALSE. Darknet-19's Top-1 accuracy (74.0%) is actually LOWER than ResNet-50's (75.3%). Darknet-19 wins on efficiency: 5.58B vs 7.66B FLOPs, 200 vs 90 FPS. It represents a speed-accuracy trade-off, not strict superiority."
+  },
+  {
+    diff: "medium",
+    q: "The pass-through layer in YOLOv2 is conceptually similar to skip connections in ResNet, in that both mechanisms allow gradient flow and feature information to bypass intermediate layers and reach earlier parts of the network.",
+    ans: false,
+    correct_fb: "Correct — FALSE. While both involve feature reuse across layers, they differ fundamentally: ResNet skip connections add feature maps element-wise to enable gradient flow through shortcut paths (solving vanishing gradients). YOLOv2's pass-through is a one-way forward connection for multi-scale feature fusion — it does not feed gradients backward through a shortcut, and its purpose is richer spatial features at the detection head, not gradient flow improvement.",
+    wrong_fb: "This is FALSE. Despite the superficial similarity, ResNet skip connections serve to facilitate gradient flow during backpropagation (solving the degradation problem). YOLOv2's pass-through layer is purely for feature fusion at inference — combining high-resolution early features with semantic deep features. The mechanisms and motivations are distinct."
+  },
+  {
+    diff: "easy",
+    q: "YOLOv2 at its highest resolution (544×544) achieves both higher mAP AND higher FPS than Faster R-CNN VGG-16.",
+    ans: true,
+    correct_fb: "Correct — TRUE. YOLOv2 at 544×544: 78.6 mAP at 40 FPS. Faster R-CNN VGG-16: 73.2 mAP at 7 FPS. YOLOv2 wins on both metrics — +5.4 mAP and ~5.7× faster.",
+    wrong_fb: "This is TRUE. YOLOv2 at 544×544 achieves 78.6 mAP (vs 73.2 for Faster R-CNN) and 40 FPS (vs 7 FPS for Faster R-CNN). It surpasses Faster R-CNN on both accuracy and speed simultaneously."
+  },
+  {
+    diff: "hard",
+    q: "In YOLOv2, the objectness target for a non-responsible anchor box (one not matched to any ground truth) is always set to exactly 0 during training, regardless of the IoU between that anchor's predicted box and any ground truth box.",
+    ans: false,
+    correct_fb: "Correct — FALSE. In practice, if a non-responsible anchor produces a predicted box with high IoU (above a threshold, typically 0.6) with any ground truth, it is treated as 'ambiguous' and its objectness loss is ignored (not penalized as 0). Only anchors with IoU below the threshold below are penalized with target=0. This prevents punishing anchors that accidentally produce good predictions.",
+    wrong_fb: "This is FALSE. YOLOv2 (and its family) uses an IoU threshold: non-responsible anchors whose predicted boxes have IoU > threshold (e.g. 0.6) with any GT are treated as ambiguous — their objectness loss is ignored rather than penalized. Only truly background anchors (IoU < threshold with all GT) get objectness target = 0."
+  },
+  {
+    diff: "medium",
+    q: "Batch normalization in YOLOv2 is applied only during training and has no effect at inference time, since test-time normalization uses fixed population statistics computed during training.",
+    ans: false,
+    correct_fb: "Correct — FALSE. Batch normalization IS applied at inference time, but uses running (population) estimates of mean and variance accumulated during training (exponential moving averages), rather than mini-batch statistics. It still normalizes activations at test time — it is not deactivated. The behavior changes (batch stats → running stats), but BN is not removed.",
+    wrong_fb: "This is FALSE. Batch normalization is active at inference time. During training it uses mini-batch statistics; during inference it uses running average estimates of mean and variance (accumulated via exponential moving average during training). It normalizes activations in both phases — the statistics source changes, not whether it operates."
+  }
+];
+
+/* ════════════════════════════════════════
+   FLASHCARD DATA
+════════════════════════════════════════ */
+const CARDS = [
+  { topic: "Architecture", q: "What are the two key output differences between YOLOv1 (7×7×30) and YOLOv2 (13×13×125)?", a: "Grid: 7×7 → 13×13 (fully conv, no FC). Depth: 30 → 125\n= 5 anchors × (4+1+20).\nAlso: classes moved from per-cell to per-anchor-box." },
+  { topic: "Box Prediction", q: "Write the 4 YOLOv2 bounding box prediction formulas and explain the role of each function.", a: "bx = σ(tx) + Cx  [sigmoid keeps center in cell]\nby = σ(ty) + Cy  [same]\nbw = Pw × e^tw   [exp ensures positive width]\nbh = Ph × e^th   [exp ensures positive height]" },
+  { topic: "Anchor Boxes", q: "Why does YOLOv2 use 1−IoU instead of Euclidean distance in K-means for anchor selection?", a: "Euclidean distance is scale-dependent: large boxes dominate clustering. 1−IoU measures shape similarity regardless of size → clusters anchors by aspect ratio/shape, not absolute dimensions." },
+  { topic: "Training", q: "What are the 5 training targets YOLOv2 sets for the responsible (cell, anchor) pair?", a: "1. tx, ty: offsets of GT center from cell corner\n2. tw = log(GT_w/P_w), th = log(GT_h/P_h)\n3. Objectness = IoU(pred, GT)\n4. Class: one-hot vector\n5. All other anchors: objectness = 0" },
+  { topic: "Pass-Through", q: "Trace the exact tensor transformations in the Pass-Through Layer from input to final concatenated output.", a: "26×26×512\n→ Divide into 4 × (13×13×512) spatial regions\n→ Stack channels: 13×13×2048\n→ Concat with 13×13×1024\n= 13×13×3072 final tensor" },
+  { topic: "Batch Norm", q: "What 4 operations does Batch Normalization perform, and what is its net effect in YOLOv2?", a: "1. Compute μ (mean) and σ (std) of batch\n2. Normalize: Â = (A−μ)/σ\n3. Scale: γ×Â (learnable)\n4. Shift: +β (learnable)\nEffect: +2% mAP, prevents overfitting, removes need for dropout." },
+  { topic: "Hi-Res Classifier", q: "Describe the exact 3-stage training procedure of YOLOv2 and why it differs from YOLOv1.", a: "Stage 1: 224×224, ImageNet, 160 epochs\nStage 1.5 (NEW): 448×448, ImageNet, 10 epochs\nStage 2: 448×448, Detection data\nResult: +4% mAP. YOLOv1 skipped Stage 1.5, forcing the network to adapt resolution AND learn detection simultaneously." },
+  { topic: "Multi-Scale", q: "Why must YOLOv2 inputs be multiples of 32, and what resolutions are used in multi-scale training?", a: "5 max-pool layers × stride 2 = 2^5 = 32 total downsampling. Input N must satisfy N/32 ∈ ℤ.\nResolutions: {288, 320, 352, 384, 416, 448, 480, 512, 544, 576, 608}\nChanged every 10 batches randomly." },
+  { topic: "Darknet-19", q: "Compare Darknet-19 vs ResNet-50 vs VGG-16 on Top-1 accuracy, FLOPs, and GPU speed.", a: "VGG-16:    70.5% acc | 30.95B FLOPs | 100 FPS\nResNet-50: 75.3% acc |  7.66B FLOPs |  90 FPS\nDarknet19: 74.0% acc |  5.58B FLOPs | 200 FPS\n→ Darknet-19 is fastest with lowest compute." },
+  { topic: "K-means Anchors", q: "What is the optimal K for YOLOv2 anchor clustering and how is it determined?", a: "K=5 anchors. Determined by plotting Avg-IoU vs K: improvement rate diminishes significantly after K=5. K=5 balances coverage of object shapes against inference-time complexity (larger K = more anchors to process)." },
+  { topic: "Localization", q: "Explain why YOLOv1 has poor localization and how YOLOv2's anchor boxes solve this at the loss function level.", a: "YOLOv1: learns w,h from scratch with unbounded regression → difficult, unstable.\nYOLOv2: tw = log(GT_w/P_w) → bounded log-ratio regression. The anchor P_w provides a meaningful prior. Network only learns the small correction, not the full value." },
+  { topic: "Architecture", q: "What does 'fully convolutional' mean in YOLOv2 and what does it enable vs YOLOv1?", a: "No fully connected layers — only conv layers with fixed kernel sizes. FC layers require fixed input size (weight matrix). Conv layers slide over any spatial size. Enables: variable input resolution, multi-scale training, smaller output = 13×13 instead of 7×7." },
+  { topic: "Box Prediction", q: "In YOLOv2, what is the per-anchor output vector structure for Pascal VOC (20 classes)? List all components.", a: "[tx, ty] — center offsets (apply sigmoid)\n[tw, th] — size log-ratios (apply exp × anchor)\n[to]     — objectness (apply sigmoid)\n[p1...p20] — class probs (apply softmax)\nTotal = 2+2+1+20 = 25 values per anchor" },
+  { topic: "Performance", q: "What is the cumulative mAP improvement breakdown for all YOLOv2 improvements from the baseline?", a: "Batch Normalization:    +2%\nHigh-Res Classifier:   +4%\nAnchor Boxes (K-means):+5%\nPass-Through Layer:    +1%\nFully Conv (13×13):    (enables other gains)\nTotal: ~+12% mAP from 63.4 → 78.6 mAP" },
+  { topic: "Anchor Boxes", q: "When YOLOv2 first adopted manual anchors (before K-means), mAP dropped slightly but recall improved. Explain this trade-off mechanistically.", a: "More proposals (5×169=845 vs 98) → higher recall (88% vs 81%): fewer missed objects. But more proposals also increase false positives → precision drops → mAP drops slightly (69.5→69.2). K-means anchors fix this by ensuring proposals are well-matched to actual object shapes." },
+  { topic: "Training", q: "For a non-responsible anchor box during YOLOv2 training, when is its objectness loss ignored rather than penalized?", a: "If IoU(anchor_predicted_box, any_GT_box) > threshold (e.g. 0.6): loss is IGNORED (ambiguous)\nIf IoU < threshold for all GT: objectness target = 0, loss IS computed\nThis prevents punishing anchors that accidentally produce good predictions for nearby objects." },
+  { topic: "Architecture", q: "How does YOLOv2 address the detection of small objects, and what is the specific spatial resolution preserved?", a: "Pass-Through Layer: connects 26×26×512 (earlier layer, high spatial resolution) to final 13×13 detection head. Reorganizes 26×26×512 → 13×13×2048 then concatenates with 13×13×1024 → 3072 channels. The 26×26 resolution preserves 4× more spatial detail than 13×13 alone." },
+  { topic: "Batch Norm", q: "How does Batch Normalization differ between training and inference in YOLOv2?", a: "Training: μ, σ computed from current mini-batch (stochastic)\nInference: uses running averages (μ_running, σ_running) accumulated during training via exponential moving average\nBN is ACTIVE in both phases — only the statistics source changes." },
+  { topic: "Performance", q: "Compare YOLOv2 at 288×288 and 544×544 against Faster R-CNN on both mAP and FPS.", a: "YOLOv2 @ 288×288: 69 mAP,  90 FPS → 13× faster, −4 mAP vs FRCNN\nYOLOv2 @ 416×416: 76.8 mAP, 67 FPS → 10× faster, +3.6 mAP vs FRCNN\nYOLOv2 @ 544×544: 78.6 mAP, 40 FPS →  6× faster, +5.4 mAP vs FRCNN\nFaster R-CNN:      73.2 mAP,  7 FPS" },
+  { topic: "K-means Anchors", q: "What are the two distinct problems that motivated moving from manual (Faster R-CNN style) to K-means anchors in YOLOv2?", a: "1. Manual anchors (3 scales × 3 ratios = 9) are not dataset-specific — they may poorly match the actual distribution of object shapes in Pascal VOC or COCO.\n2. More anchors (9 vs 5) with poor matches = wasted computation and lower per-anchor quality. K-means provides data-driven anchors that maximize average IoU with GT boxes." }
+];
+
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+const answers = {};
+let submitted = false;
+let correctCount = 0, wrongCount = 0;
+
+/* ════════════════════════════════════════
+   PAGE SWITCHING
+════════════════════════════════════════ */
+function showPage(p) {
+  document.getElementById('page-exam').style.display  = p === 'exam'  ? 'block' : 'none';
+  document.getElementById('page-flash').style.display = p === 'flash' ? 'block' : 'none';
+  document.getElementById('tab-exam').classList.toggle('active',  p === 'exam');
+  document.getElementById('tab-flash').classList.toggle('active', p === 'flash');
+}
+
+/* ════════════════════════════════════════
+   RENDER EXAM
+════════════════════════════════════════ */
+function diffLabel(d) {
+  return `<span class="diff ${d}">${d}</span>`;
+}
+
+function buildMC(q, idx) {
+  const id = 'mc'+idx;
+  const ltrs = ['A','B','C','D'];
+  const opts = q.opts.map((o,i) => `
+    <div class="opt" id="${id}_opt${i}" onclick="pickMC('${id}',${i},${q.ans},'${id}')">
+      <span class="opt-ltr">${ltrs[i]}</span>
+      <span>${o}</span>
+      <span class="opt-icon" id="${id}_icon${i}"></span>
+    </div>`).join('');
+
+  return `<div class="q-card" id="${id}_card">
+    <div class="q-top">
+      <span class="q-num-badge">Q${idx+1}</span>
+      ${diffLabel(q.diff)}
+      <span class="q-text">${q.q}</span>
+    </div>
+    <div class="opts">${opts}</div>
+    <div class="inline-feedback" id="${id}_fb"></div>
+  </div>`;
+}
+
+function buildTF(q, idx) {
+  const id = 'tf'+idx;
+  const qNum = MC.length + idx + 1;
+  return `<div class="q-card" id="${id}_card">
+    <div class="q-top">
+      <span class="q-num-badge">Q${qNum}</span>
+      ${diffLabel(q.diff)}
+      <span class="q-text">${q.q}</span>
+    </div>
+    <div class="tf-row">
+      <button class="tf-btn" id="${id}_T" onclick="pickTF('${id}',true,${q.ans})">✓ True</button>
+      <button class="tf-btn" id="${id}_F" onclick="pickTF('${id}',false,${q.ans})">✗ False</button>
+    </div>
+    <div class="inline-feedback" id="${id}_fb"></div>
+  </div>`;
+}
+
+function renderExam() {
+  document.getElementById('mc-wrap').innerHTML = MC.map(buildMC).join('');
+  document.getElementById('tf-wrap').innerHTML = TF.map(buildTF).join('');
+}
+
+/* ════════════════════════════════════════
+   INTERACTION — IMMEDIATE FEEDBACK
+════════════════════════════════════════ */
+function updateStats() {
+  const n = Object.keys(answers).length;
+  document.getElementById('st-answered').textContent = n;
+  document.getElementById('st-correct').textContent  = correctCount;
+  document.getElementById('st-wrong').textContent    = wrongCount;
+  document.getElementById('prog').style.width = (n/30*100) + '%';
+}
+
+function showFeedback(fbId, isCorrect, q) {
+  const el = document.getElementById(fbId + '_fb');
+  el.className = 'inline-feedback show ' + (isCorrect ? 'fb-correct' : 'fb-wrong');
+  el.innerHTML = `<div class="fb-verdict">${isCorrect ? '✓ Correct' : '✗ Incorrect'}</div>${isCorrect ? q.correct_fb : q.wrong_fb}`;
+}
+
+function pickMC(id, chosen, correct, qid) {
+  if (answers[id] !== undefined) return;
+  answers[id] = chosen;
+
+  const isCorrect = chosen === correct;
+  if (isCorrect) correctCount++; else wrongCount++;
+
+  // Lock all options
+  for (let i=0;i<4;i++) {
+    const el = document.getElementById(id+'_opt'+i);
+    el.classList.add('locked');
+    el.onclick = null;
+  }
+  // Style chosen
+  const chosenEl = document.getElementById(id+'_opt'+chosen);
+  if (isCorrect) {
+    chosenEl.classList.add('opt-correct-show');
+    document.getElementById(id+'_icon'+chosen).textContent = '✓';
+  } else {
+    chosenEl.classList.add('opt-wrong-show');
+    document.getElementById(id+'_icon'+chosen).textContent = '✗';
+    // Show correct
+    const corrEl = document.getElementById(id+'_opt'+correct);
+    corrEl.classList.add('opt-correct-show');
+    document.getElementById(id+'_icon'+correct).textContent = '✓';
+  }
+
+  const card = document.getElementById(id+'_card');
+  card.classList.add(isCorrect ? 'state-correct' : 'state-wrong');
+
+  const mcIdx = parseInt(id.replace('mc',''));
+  showFeedback(id, isCorrect, MC[mcIdx]);
+  updateStats();
+}
+
+function pickTF(id, chosen, correct) {
+  if (answers[id] !== undefined) return;
+  answers[id] = chosen;
+
+  const isCorrect = chosen === correct;
+  if (isCorrect) correctCount++; else wrongCount++;
+
+  const tBtn = document.getElementById(id+'_T');
+  const fBtn = document.getElementById(id+'_F');
+  tBtn.classList.add('locked'); fBtn.classList.add('locked');
+  tBtn.onclick = null; fBtn.onclick = null;
+
+  if (correct) tBtn.classList.add('tf-correct-show');
+  else         fBtn.classList.add('tf-correct-show');
+
+  if (!isCorrect) {
+    if (chosen) tBtn.classList.add('tf-wrong-show');
+    else        fBtn.classList.add('tf-wrong-show');
+  }
+
+  const card = document.getElementById(id+'_card');
+  card.classList.add(isCorrect ? 'state-correct' : 'state-wrong');
+
+  const tfIdx = parseInt(id.replace('tf',''));
+  showFeedback(id, isCorrect, TF[tfIdx]);
+  updateStats();
+}
+
+/* ════════════════════════════════════════
+   SUBMIT (reveal skipped)
+════════════════════════════════════════ */
+function submitAll() {
+  if (submitted) return;
+  submitted = true;
+  document.getElementById('btn-submit').disabled = true;
+
+  // Force-show all unanswered
+  MC.forEach((q,i) => {
+    const id = 'mc'+i;
+    if (answers[id] === undefined) {
+      // Show correct
+      const corrEl = document.getElementById(id+'_opt'+q.ans);
+      corrEl.classList.add('opt-correct-show');
+      document.getElementById(id+'_icon'+q.ans).textContent = '✓';
+      for(let j=0;j<4;j++){
+        const el=document.getElementById(id+'_opt'+j);
+        el.classList.add('locked'); el.onclick=null;
+      }
+      showFeedback(id, false, q);
+    }
+  });
+
+  TF.forEach((q,i) => {
+    const id = 'tf'+i;
+    if (answers[id] === undefined) {
+      const tBtn = document.getElementById(id+'_T');
+      const fBtn = document.getElementById(id+'_F');
+      tBtn.classList.add('locked'); fBtn.classList.add('locked');
+      tBtn.onclick=null; fBtn.onclick=null;
+      if (q.ans) tBtn.classList.add('tf-correct-show');
+      else       fBtn.classList.add('tf-correct-show');
+      showFeedback(id, false, q);
+    }
+  });
+
+  const skipped = 30 - Object.keys(answers).length;
+  const pct = Math.round(correctCount/30*100);
+
+  document.getElementById('sb-c').textContent = correctCount;
+  document.getElementById('sb-w').textContent = wrongCount + skipped;
+  document.getElementById('sb-s').textContent = skipped;
+
+  const bigEl = document.getElementById('score-pct-big');
+  bigEl.textContent = pct + '%';
+  let cls, title, sub;
+  if      (pct>=90) { cls='sc-a'; title='Outstanding'; sub='Excellent mastery of YOLOv2'; }
+  else if (pct>=80) { cls='sc-b'; title='Very Good';   sub='Strong understanding overall'; }
+  else if (pct>=70) { cls='sc-b'; title='Good';        sub='Review the hard questions'; }
+  else if (pct>=60) { cls='sc-c'; title='Passing';     sub='Revisit anchor boxes & formulas'; }
+  else              { cls='sc-d'; title='Needs Work';   sub='Study the chapter again carefully'; }
+  bigEl.className = 'score-big '+cls;
+  document.getElementById('score-grade-title').textContent = title;
+  document.getElementById('score-grade-sub').textContent   = sub;
+
+  const banner = document.getElementById('score-banner');
+  banner.classList.add('show');
+  document.getElementById('btn-retry').classList.add('show');
+  document.getElementById('submit-note').textContent = 'Showing all correct answers ↓';
+
+  updateStats();
+  banner.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function retryAll() {
+  Object.keys(answers).forEach(k => delete answers[k]);
+  submitted = false; correctCount = 0; wrongCount = 0;
+  document.getElementById('score-banner').classList.remove('show');
+  document.getElementById('btn-submit').disabled = false;
+  document.getElementById('btn-retry').classList.remove('show');
+  document.getElementById('submit-note').textContent = '';
+  document.getElementById('prog').style.width = '0%';
+  updateStats();
+  renderExam();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ════════════════════════════════════════
+   FLASHCARDS
+════════════════════════════════════════ */
+let flashIdx = 0;
+let filteredCards = [...CARDS];
+let isFlipped = false;
+const allTopics = [...new Set(CARDS.map(c=>c.topic))];
+
+function buildFlashFilters() {
+  const wrap = document.getElementById('flash-filters');
+  wrap.innerHTML = `<button class="filter-btn active" onclick="filterFlash('All', this)">All (${CARDS.length})</button>`;
+  allTopics.forEach(t => {
+    const cnt = CARDS.filter(c=>c.topic===t).length;
+    wrap.innerHTML += `<button class="filter-btn" onclick="filterFlash('${t}', this)">${t} (${cnt})</button>`;
+  });
+}
+
+function filterFlash(topic, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filteredCards = topic === 'All' ? [...CARDS] : CARDS.filter(c=>c.topic===topic);
+  flashIdx = 0;
+  isFlipped = false;
+  renderFlashCard();
+}
+
+function renderFlashCard() {
+  const c = filteredCards[flashIdx];
+  document.getElementById('card-q').textContent   = c.q;
+  document.getElementById('card-a').textContent   = c.a;
+  document.getElementById('card-topic').textContent   = c.topic;
+  document.getElementById('card-topic-b').textContent = c.topic;
+  document.getElementById('fp-counter').textContent   = `${flashIdx+1} / ${filteredCards.length}`;
+  document.getElementById('fp-fill').style.width = ((flashIdx+1)/filteredCards.length*100) + '%';
+  document.getElementById('fp-prev').disabled = flashIdx === 0;
+  document.getElementById('fp-next').disabled = flashIdx === filteredCards.length-1;
+
+  // Reset flip
+  isFlipped = false;
+  document.getElementById('flip-card').classList.remove('flipped');
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('flip-card').classList.toggle('flipped', isFlipped);
+}
+
+function flashNav(dir) {
+  const next = flashIdx + dir;
+  if (next < 0 || next >= filteredCards.length) return;
+  flashIdx = next;
+  isFlipped = false;
+  document.getElementById('flip-card').classList.remove('flipped');
+  setTimeout(renderFlashCard, 50);
+}
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('page-flash').style.display === 'none') return;
+  if (e.key === 'ArrowRight') flashNav(1);
+  if (e.key === 'ArrowLeft')  flashNav(-1);
+  if (e.key === ' ') { e.preventDefault(); flipCard(); }
+});
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+renderExam();
+buildFlashFilters();
+renderFlashCard();
+showPage('exam');
+</script>
+</body>
+</html>
